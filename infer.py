@@ -6,7 +6,7 @@ from PIL import Image
 from torch.autograd import Variable
 from torchvision import transforms
 
-from config import ecssd_path, hkuis_path, pascals_path, sod_path, dutomron_path
+from config import ecssd_path, hkuis_path, pascals_path, sod_path, dutomron_path, kaist_path
 from misc import check_mkdir, crf_refine, AvgMeter, cal_precision_recall_mae, cal_fmeasure
 from model import R3Net
 
@@ -21,7 +21,7 @@ ckpt_path = './ckpt'
 exp_name = 'R3Net'
 
 args = {
-    'snapshot': '6000',  # your snapshot filename (exclude extension name)
+    'snapshot': '9920',  # your snapshot filename (exclude extension name)
     'crf_refine': True,  # whether to use crf to refine results
     'save_results': True  # whether to save the resulting masks
 }
@@ -33,7 +33,7 @@ img_transform = transforms.Compose([
 to_pil = transforms.ToPILImage()
 
 to_test = {'ecssd': ecssd_path, 'hkuis': hkuis_path, 'pascal': pascals_path, 'sod': sod_path, 'dutomron': dutomron_path}
-
+to_test = {'kaist':kaist_path}
 
 def main():
     net = R3Net().cuda()
@@ -54,11 +54,13 @@ def main():
             if args['save_results']:
                 check_mkdir(os.path.join(ckpt_path, exp_name, '(%s) %s_%s' % (exp_name, name, args['snapshot'])))
 
-            img_list = [os.path.splitext(f)[0] for f in os.listdir(root) if f.endswith('.jpg')]
+            img_list =  os.listdir(root)
+            print img_list
             for idx, img_name in enumerate(img_list):
                 print 'predicting for %s: %d / %d' % (name, idx + 1, len(img_list))
-
-                img = Image.open(os.path.join(root, img_name + '.jpg')).convert('RGB')
+                #print img_name
+                img_path = os.path.join(root, img_name)
+                img = Image.open(img_path).convert('RGB')
                 img_var = Variable(img_transform(img).unsqueeze(0), volatile=True).cuda()
                 prediction = net(img_var)
                 prediction = np.array(to_pil(prediction.data.squeeze(0).cpu()))
@@ -66,25 +68,25 @@ def main():
                 if args['crf_refine']:
                     prediction = crf_refine(np.array(img), prediction)
 
-                gt = np.array(Image.open(os.path.join(root, img_name + '.png')).convert('L'))
-                precision, recall, mae = cal_precision_recall_mae(prediction, gt)
-                for pidx, pdata in enumerate(zip(precision, recall)):
-                    p, r = pdata
-                    precision_record[pidx].update(p)
-                    recall_record[pidx].update(r)
-                mae_record.update(mae)
+                #gt = np.array(Image.open(os.path.join(root+"/masks", img_name )).convert('L'))
+                #precision, recall, mae = cal_precision_recall_mae(prediction, gt)
+                #for pidx, pdata in enumerate(zip(precision, recall)):
+                #    p, r = pdata
+                #    precision_record[pidx].update(p)
+                #    recall_record[pidx].update(r)
+                #mae_record.update(mae)
 
                 if args['save_results']:
-                    Image.fromarray(prediction).save(os.path.join(ckpt_path, exp_name, '(%s) %s_%s' % (
-                        exp_name, name, args['snapshot']), img_name + '.png'))
+                    Image.fromarray(prediction).save(os.path.join(ckpt_path, exp_name, '%s_%s_%s' % (
+                        exp_name, name, args['snapshot']+"kaist_test"), img_name))
 
-            fmeasure = cal_fmeasure([precord.avg for precord in precision_record],
-                                    [rrecord.avg for rrecord in recall_record])
+            #fmeasure = cal_fmeasure([precord.avg for precord in precision_record],
+            #                        [rrecord.avg for rrecord in recall_record])
 
-            results[name] = {'fmeasure': fmeasure, 'mae': mae_record.avg}
+            #results[name] = {'fmeasure': fmeasure, 'mae': mae_record.avg}
 
-    print 'test results:'
-    print results
+    #print 'test results:'
+    #print results
 
 
 if __name__ == '__main__':

@@ -1,7 +1,10 @@
 # coding: utf-8
 import os
 
-datasets_root = '/home/b3-542/文档/DataSets/saliency'
+datasets_root = '/mnt/nfs/scratch1/dghose/Kaist/kaist_train/'
+datasets_root = '/mnt/nfs/scratch1/dghose/Kaist_test_30X/kaist_30X_test/'
+
+kaist_path = datasets_root
 
 # For each dataset, I put images and masks together
 msra10k_path = os.path.join(datasets_root, 'msra10k')

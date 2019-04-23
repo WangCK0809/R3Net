@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 import joint_transforms
-from config import msra10k_path
+from config import kaist_path
 from datasets import ImageFolder
 from misc import AvgMeter, check_mkdir
 from model import R3Net
@@ -24,14 +24,15 @@ ckpt_path = './ckpt'
 exp_name = 'R3Net'
 
 args = {
-    'iter_num': 6000,
-    'train_batch_size': 14,
+    'iter_num': 160,
+    'train_batch_size': 10,
     'last_iter': 0,
     'lr': 1e-3,
     'lr_decay': 0.9,
     'weight_decay': 5e-4,
     'momentum': 0.9,
-    'snapshot': ''
+    'snapshot': '',
+    'epoch':60
 }
 
 joint_transform = joint_transforms.Compose([
@@ -45,8 +46,8 @@ img_transform = transforms.Compose([
 ])
 target_transform = transforms.ToTensor()
 
-train_set = ImageFolder(msra10k_path, joint_transform, img_transform, target_transform)
-train_loader = DataLoader(train_set, batch_size=args['train_batch_size'], num_workers=12, shuffle=True)
+train_set = ImageFolder(kaist_path, joint_transform, img_transform, target_transform)
+train_loader = DataLoader(train_set, batch_size=args['train_batch_size'], num_workers=6, shuffle=True)
 
 criterion = nn.BCEWithLogitsLoss().cuda()
 log_path = os.path.join(ckpt_path, exp_name, str(datetime.datetime.now()) + '.txt')
@@ -77,21 +78,21 @@ def main():
 
 def train(net, optimizer):
     curr_iter = args['last_iter']
-    while True:
+    for e in range(args["epoch"]):
         total_loss_record, loss0_record, loss1_record, loss2_record = AvgMeter(), AvgMeter(), AvgMeter(), AvgMeter()
         loss3_record, loss4_record, loss5_record, loss6_record = AvgMeter(), AvgMeter(), AvgMeter(), AvgMeter()
-
+        print "epoch", e
         for i, data in enumerate(train_loader):
-            optimizer.param_groups[0]['lr'] = 2 * args['lr'] * (1 - float(curr_iter) / args['iter_num']
-                                                                ) ** args['lr_decay']
-            optimizer.param_groups[1]['lr'] = args['lr'] * (1 - float(curr_iter) / args['iter_num']
-                                                            ) ** args['lr_decay']
+            #optimizer.param_groups[0]['lr'] = 2 * args['lr'] * 
+            #                                                    ** args['lr_decay']
+            #optimizer.param_groups[1]['lr'] = args['lr'] * (1 - float(curr_iter) / args['iter_num']
+            #                                                ) ** args['lr_decay']
 
             inputs, labels = data
             batch_size = inputs.size(0)
             inputs = Variable(inputs).cuda()
             labels = Variable(labels).cuda()
-
+            print(inputs.size())
             optimizer.zero_grad()
             outputs0, outputs1, outputs2, outputs3, outputs4, outputs5, outputs6 = net(inputs)
             loss0 = criterion(outputs0, labels)
@@ -125,11 +126,11 @@ def train(net, optimizer):
             print log
             open(log_path, 'a').write(log + '\n')
 
-            if curr_iter == args['iter_num']:
+            if curr_iter % args['iter_num']==0:
                 torch.save(net.state_dict(), os.path.join(ckpt_path, exp_name, '%d.pth' % curr_iter))
                 torch.save(optimizer.state_dict(),
                            os.path.join(ckpt_path, exp_name, '%d_optim.pth' % curr_iter))
-                return
+                #return
 
 
 if __name__ == '__main__':

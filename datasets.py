@@ -6,8 +6,9 @@ from PIL import Image
 
 
 def make_dataset(root):
-    img_list = [os.path.splitext(f)[0] for f in os.listdir(root) if f.endswith('.jpg')]
-    return [(os.path.join(root, img_name + '.jpg'), os.path.join(root, img_name + '.png')) for img_name in img_list]
+    img_list = os.listdir(root+"/images")
+    print len(img_list)
+    return [(os.path.join(root+"/images", img_name ), os.path.join(root+"/masks", img_name)) for img_name in img_list]
 
 
 class ImageFolder(data.Dataset):
